@@ -1,0 +1,340 @@
+<!doctype html>
+<html>
+	<head>
+		<title>Fangzhou Guo</title>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+		
+			
+		<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/108/three.js"></script>
+        <script src="../vendor/controls/TrackballControls.js"></script>
+        <script src="../vendor/renderers/CSS3DRenderer.js"></script>
+
+		<style>
+			body {
+				overflow	: hidden;
+				padding		: 0;
+				margin		: 0;
+
+				color		: #222;
+				background: linear-gradient(to bottom,  #EEE 0%,#CCC 100%);
+				font-family	: monospace;
+				font-size	: 100%;
+			}
+			#info .top {
+				position	: absolute;
+				top		: 0px;
+				width		: 100%;
+				padding		: 5px;
+				text-align	: center;
+			}
+			#info a {
+				color		: #66F;
+				text-decoration	: none;
+			}
+			#info a:hover {
+				text-decoration	: underline;
+			}
+			#info .bottom {
+				position	: absolute;
+				bottom		: 10px;
+				right		: 5px;
+				padding		: 5px;
+                align-content: center;
+			}
+		</style>
+	</head>
+<body>
+	<!-- three.js container -->
+			<div id="container"></div>
+			<div id="info">
+                <p class="top">Fangzhou Guo
+                    <br>- Class 2 -<br> Machine Hallucination
+                </p>
+            </div>
+
+            <div id='info'>
+                <a class="bottom" href="https://threejs.org/examples/?q=you#css3d_youtube"> Reference Example @ three.js - youtube using css3drender </a>
+            </div>
+
+            <div id="container"></div>
+		    <div id="blocker"></div>
+
+	<!-- info on screen display -->
+
+	<script type="text/javascript">
+        var scene, renderer;
+        var camera, cameraControls, controls;
+        var shouldRaycast;
+
+        var raycaster = new THREE.Raycaster();
+        var mouse = new THREE.Vector2();
+        var cameraTarget = new THREE.Vector3(0, 0, 0);
+
+        var videos = [];
+        var videos2 = [];
+        var videos3 = [];
+
+        init();
+        animate();
+
+        function init(){
+
+            // ************************* scenes ************************
+			scene = new THREE.Scene();
+
+            // ************************* camera ************************
+            camera = new THREE.PerspectiveCamera( 50, window.innerWidth / window.innerHeight, 1, 5000 );
+			camera.position.set( 500, 450, 750 );
+            camera.lookAt(cameraTarget);
+            scene.add(camera);
+
+            // ************************* scenes ************************
+            renderer = new THREE.CSS3DRenderer();
+			renderer.setSize( window.innerWidth, window.innerHeight );
+			//container.appendChild( renderer.domElement );  
+
+            // ************************* customize functions ************************           
+			document.getElementById('container').appendChild(renderer.domElement);
+
+			// Resize canvas when the screen resizes
+			document.addEventListener('resize', function() {
+				camera.aspect = width / height;
+				camera.updateProjectionMatrix();
+				renderer.setSize(width, height);
+			}, false);     
+
+            // ************************* lights ************************
+			// Add lights to the scene
+			var light1	= new THREE.AmbientLight( Math.random() * 0xffffff );
+			scene.add( light1 );
+
+			// Add random directional light at random position
+			var light2	= new THREE.DirectionalLight( Math.random() * 0xffffff );
+			light2.position.set( Math.random(), Math.random(), Math.random() ).normalize().multiplyScalar(3);
+			light2.lookAt(cameraTarget); // Tell the camera to aim at our cameraTarget
+			scene.add( light2 );
+
+			// Add another random light
+			var light3	= new THREE.DirectionalLight( Math.random() * 0xffffff );
+			light3.position.set( Math.random(), Math.random(), Math.random() ).normalize().multiplyScalar(3);
+			light3.lookAt(cameraTarget); // Tell the camera to aim at our cameraTarget
+			scene.add(light3);
+
+            // ********** Creating your objects here ******************
+
+            var Element = function ( id, x, y, z, ry ) {
+                var isEmpty = false;
+                var div = document.createElement( 'div' );
+                div.style.width = '240px';
+                div.style.height = '180px';
+                div.style.backgroundColor = '#000';
+
+                var iframe = document.createElement( 'iframe' );
+                iframe.style.width = '240px';
+                iframe.style.height = '180px';
+                iframe.style.border = '0px';
+                iframe.src = [ 'https://www.youtube.com/embed/', id, '?&autoplay=1&loop=1&playlist=9A3tBINRdiE' ].join( '' );
+                iframe.allow = 'autoplay'
+                div.appendChild( iframe );
+
+                var object = new THREE.CSS3DObject( div );
+                object.position.set( x, y, z );
+                object.rotation.x = ry;
+
+                return object;
+            };
+
+            // the empty iframe
+
+            var emptyElement = function ( id, x, y, z, ry ) {
+                var isEmpty = true;
+                var div = document.createElement( 'div' );
+                div.style.width = '240px';
+                div.style.height = '180px';
+                div.style.backgroundColor = '#000';
+
+                var object = new THREE.CSS3DObject( div );
+                object.position.set( x, y, z );
+                object.rotation.x = ry;
+
+                return object;
+            };
+
+            //var group = new THREE.Group();
+            var videoList = [
+                'HwPD4c_r5C4',
+                '9A3tBINRdiE',
+                'Y1DZZvTnOH8',
+                '9QdrXqKfsZA',
+                'a6z1CbRcZAg',
+                'EUARWnmghQU',
+                '9A3tBINRdiE',
+            ]
+            var numOfMedia = 6;
+            var matrixNumber = 14;
+
+            for(var i = 0; i< matrixNumber; i++) {
+                var isEmpty = Math.random(0,1);
+                if(isEmpty <= 0.7) {            
+                    var videoEmptyTemp = new emptyElement( videoList[0], 240 * (i - matrixNumber / 2 - 2), 0, 0, - Math.PI / 2 );
+                    videos.push(videoEmptyTemp);
+                } else{
+                    var videoIndex = Math.round(Math.random(7)); 
+                    var videoTemp = new Element( videoList[videoIndex], 240 * (i - matrixNumber / 2 - 2), 0, 0, - Math.PI / 2 );
+                    videos.push(videoTemp);
+                }   
+                scene.add(videos[i]);
+            }
+
+            for(var i = 0; i< matrixNumber; i++) {
+                var isEmpty = Math.random(0,1);
+                if(isEmpty <= 0.8) {            
+                    var videoEmptyTemp = new emptyElement( videoList[0], 240 * (i - matrixNumber / 2 - 2), 180, 0, Math.PI );
+                    videos2.push(videoEmptyTemp);
+                } else{
+                    var videoIndex = Math.round(Math.random(7)); 
+                    var videoTemp = new Element( videoList[videoIndex], 240 * (i - matrixNumber / 2 - 2), 180, 0, Math.PI );
+                    videos2.push(videoTemp);
+                }   
+                scene.add(videos2[i]);
+            }  
+
+            for(var i = 0; i< matrixNumber; i++) {   
+                var videoEmptyTemp = new emptyElement( videoList[0], 240 * (i - matrixNumber / 2 - 2), -180, 0, 0 );
+                scene.add(videoEmptyTemp);
+            } 
+
+            for(var i = 0; i< matrixNumber; i++) {   
+                var videoEmptyTemp = new emptyElement( videoList[0], 240 * (i - matrixNumber / 2 - 2), -360, 0, 0 );
+                scene.add(videoEmptyTemp);
+            }
+
+            // for (var i = 0; i < numOfMedia; i++){
+            //     group.add( new Element( videoList[i], - 240 * numOfMedia / 2 + i * 240, 0, 0, Math.PI / 2 ) );
+            // }
+           // scene.add( group );
+
+
+            controls = new THREE.TrackballControls( camera );
+            controls.rotateSpeed = 4;
+            
+            var blocker = document.getElementById( 'blocker' );
+            blocker.style.display = 'none';
+            document.addEventListener( 'mousedown', function () {
+
+                blocker.style.display = '';
+
+            } );
+
+            document.addEventListener( 'mouseup', function () {
+
+                blocker.style.display = 'none';
+
+            } );
+
+
+
+
+			// var geometry, material, mesh, randomPoint;
+			// var numCubes = 5;
+            // var cubes = [];
+
+			// for (let i = 0; i < numCubes; i++) {
+			// 	// Create a cube gemetry
+			// 	geometry = new THREE.SphereGeometry( 0.5, 0.5, 0.5 );
+					
+			// 	// Create a new material for every mesh so we can color them separately
+			// 	material = new THREE.MeshPhongMaterial({color: Math.random() * 0xffffff});
+            //     material.flatShading = true;
+
+			// 	pointX = Math.sin(2 * Math.PI * (i / numCubes));
+			// 	pointZ = Math.cos(2 * Math.PI * (i / numCubes));
+
+			// 	mesh	= new THREE.Mesh( geometry, material );
+			// 	mesh.position.set(pointX, 0.5, pointZ);
+			// 	mesh.rotation.set(0.5, 0.5, 0.5);
+			// 	mesh.n = Math.random();
+
+			// 	// Add mesh to the scene
+			// 	scene.add(mesh);
+			// 	cubes.push(mesh);
+			// }
+
+
+        }
+
+        function animate(){
+			// Call the function again when the browser is free 
+			requestAnimationFrame( animate );
+
+			// do the render
+			render();
+        }
+
+        function render(){
+
+            // variable which is increase by Math.PI every seconds - usefull for animation
+			var time = Date.now() * Math.PI;
+
+            // actually render the scene
+            renderer.render( scene, camera );
+
+            //controls
+            controls.update();
+            for(var i = 0; i < 14; i++) {
+                var speed = Math.cos(i) * Math.cos(time * 0.0003) * 0.1;
+                videos[i].rotation.x += speed;
+            }
+
+            // ***************** raycasting *****************
+            var hits = []
+			
+            if(shouldRaycast) { // check if mouse is pressed
+                // Perform a ray cast from the camera, in the direction of the mouse in 3d space
+                raycaster.setFromCamera(mouse, camera);
+    
+                // Extract intersected objects (from a particular scene or parent Object3D)
+                var intersections = raycaster.intersectObjects(scene.children);
+
+                // Log all intersections
+                // console.log(intersections)
+
+                // Map intersected meshes to the hits array
+                hits = intersections.map(intersection => intersection.object)
+            }
+
+            // iterate over all objects in a scene
+            scene.traverse(function(object3d, i){
+                // Check if the current object is a THREE.Mesh (rather than a light, camera, etc.)
+                if( object3d instanceof THREE.Mesh === false )	return
+
+                // Rotate object based on `n` coefficient
+                object3d.rotateY(0.01 * object3d.n);
+                object3d.rotateX(0.02 * object3d.n);
+                object3d.rotateZ(0.03 * object3d.n);
+                
+            })
+
+        }
+        
+
+        window.addEventListener('pointermove', function (event) {
+            // calculate mouse position in normalized device coordinates
+            // (-1 to +1) for both components
+            mouse.x = ( event.clientX / window.innerWidth ) * 2 - 1;
+            mouse.y = - ( event.clientY / window.innerHeight ) * 2 + 1;
+        })
+
+        window.addEventListener('pointerdown', function (event) {
+            shouldRaycast = true;
+        })
+
+        window.addEventListener('pointerup', function (event) {
+            shouldRaycast = false;
+        })
+
+    </script>
+    
+</body>
+</html>

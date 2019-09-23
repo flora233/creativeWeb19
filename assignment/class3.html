@@ -1,0 +1,175 @@
+<!doctype html>
+<html>
+	<head>
+		<title>Fangzhou Guo</title>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+		
+			
+		<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/108/three.js"></script>
+		<script src="https://cdn.jsdelivr.net/npm/three-trackballcontrols-web@0.0.2/dist/three-trackballcontrols.js"></script>
+
+		<style>
+			body {
+				overflow	: hidden;
+				padding		: 0;
+				margin		: 0;
+
+				color		: #ffffff;
+				background: linear-gradient(to bottom,  #EEE 0%,#CCC 100%);
+				font-family	: monospace;
+				font-size	: 100%;
+			}
+			#info .top {
+				position	: absolute;
+				top		: 0px;
+				width		: 100%;
+				padding		: 5px;
+				text-align	: center;
+			}
+			#info a {
+				color		: #66F;
+				text-decoration	: none;
+			}
+			#info a:hover {
+				text-decoration	: underline;
+			}
+			#info .bottom {
+				position	: absolute;
+				bottom		: 0px;
+				right		: 5px;
+				padding		: 5px;
+			}
+		</style>
+	</head>
+<body>
+	<!-- three.js container -->
+			<div id="container"></div>
+			<div id="info">
+				<p class="top"> Fangzhou Guo
+						<br>- Class 3 -<br> Galaxy
+					</p>
+			</div>
+	<!-- info on screen display -->
+
+	<script type="text/javascript">
+
+        var scene, renderer;
+		var camera, cameraControls;
+
+		var sphere, torus, torus2;
+
+        init();
+		animate();
+	
+
+        function init(){
+            // ************************* scenes ************************
+			scene = new THREE.Scene();
+
+            // ************************* camera ************************
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000 );
+            camera.position.set(10, 4, 18); // Position the camera above and away from the scene
+            scene.add(camera);
+            cameraControls	= new TrackballControls(camera);
+
+            // ************************* scenes ************************
+            renderer = new THREE.WebGLRenderer({ alpha: true });
+			renderer.setSize( window.innerWidth, window.innerHeight );
+			renderer.setClearColor(0x222222, 1);     
+
+            // ************************* customize functions ************************           
+			document.getElementById('container').appendChild(renderer.domElement);
+
+			// Resize canvas when the screen resizes
+			document.addEventListener('resize', function() {
+				camera.aspect = width / height;
+				camera.updateProjectionMatrix();
+				renderer.setSize(width, height);
+			}, false);     
+
+            // ************************* lights ************************
+			var light	= new THREE.AmbientLight( Math.random() * 0xffffff );
+			scene.add( light );
+
+			var light	= new THREE.DirectionalLight( 0.2 * Math.random() * 0xffffff );
+			light.position.set( Math.random(), Math.random(), Math.random() ).normalize();
+			scene.add( light );
+
+			var light	= new THREE.DirectionalLight( 0.2 * Math.random() * 0xffffff );
+			light.position.set( Math.random(), Math.random(), Math.random() ).normalize();
+			scene.add(light);
+
+			// ********** Creating your objects here ******************
+			var geometry = new THREE.SphereGeometry( 5, 10, 10 );
+			var material = new THREE.MeshPhongMaterial({flatShading: true, shininess: 100, color: 0x777777});
+			sphere = new THREE.Mesh( geometry, material );
+			sphere.position.set( 0, 0, 0);
+			scene.add( sphere );
+
+			var geometry = new THREE.TorusGeometry( 8, 0.3, 30, 30 );
+			var material = new THREE.MeshPhongMaterial({flatShading: true, shininess: 100});
+			torus = new THREE.Mesh( geometry, material );
+			torus.rotation.x = Math.PI / 2 ;
+			scene.add( torus );
+
+			var geometry = new THREE.TorusGeometry( 9, 0.5, 30, 30 );
+			var material = new THREE.MeshPhongMaterial({flatShading: true, shininess: 100, color: 0x999999});
+			torus2 = new THREE.Mesh( geometry, material );
+			torus2.rotation.x = Math.PI / 3 * 2 ;
+			scene.add( torus2 );
+
+			var particles = new THREE.ConeGeometry(0, 1, 8);
+			for (var p = 0; p < 1000; p++) {
+				var particle = new THREE.Vector3(Math.random() * 500 - 250, Math.random() * 500 - 250, Math.random() * 1000 - 500);
+				particles.vertices.push(particle);
+			}
+
+			var particleMaterial = new THREE.ParticleBasicMaterial({ color: 0xffffff, size: 1 });
+			var particleSystem = new THREE.ParticleSystem(particles, particleMaterial);
+			scene.add(particleSystem);
+			
+
+        }
+
+        function animate(){
+			// Call the function again when the browser is free 
+			requestAnimationFrame( animate );
+
+			// do the render
+			render();
+        }
+
+        function render(){
+
+            // variable which is increase by Math.PI every seconds - usefull for animation
+			var time = Date.now() * Math.PI;
+			// Rotate view camera around scene
+			sphere.rotation.x = Math.cos(time * 0.001) * 0.1;
+			torus.rotation.x += 0.01;
+
+			var speed =  - 0.02;
+			var x = camera.position.x;
+			var z = camera.position.z;
+			var objX = sphere.position.x;
+			var objZ = sphere.position.z;
+
+			camera.position.x = speed + x;
+			camera.position.x = speed + z;
+
+			torus.position.set(speed + objX, 0, speed + objZ);
+			torus2.position.set(speed + objX, 0, speed + objZ);
+			sphere.position.set(speed + objX, 0, speed + objZ);
+
+            // update camera controls
+            cameraControls.update();
+
+            // actually render the scene
+            renderer.render( scene, camera );
+
+        }
+        
+
+	</script>
+</body>
+</html>
