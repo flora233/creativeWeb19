@@ -1,13 +1,14 @@
 <!doctype html>
 <html>
 	<head>
-		<title>Fangzhou Guo</title>
+		<title>Jump Jones</title>
 		<meta charset="utf-8">
 		<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
 		
 			
 		<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/108/three.js"></script>
 		<script src="https://cdn.jsdelivr.net/npm/three-trackballcontrols-web@0.0.2/dist/three-trackballcontrols.js"></script>
+		<script src="../vendor/controls/OrbitControls.js"></script>
 
 		<style>
 			body {
@@ -52,123 +53,170 @@
 			</div>
 	<!-- info on screen display -->
 
-	<script type="text/javascript">
+	<script type="module">
 
-        var scene, renderer;
-		var camera, cameraControls;
+		var renderer, scene, camera;
+		var controls, group;
+		var sound, analyser, audioData;
 
-		var sphere, torus, torus2;
+		var sphere, ground;
 
-        init();
+		init();
 		animate();
-	
-
-        function init(){
-            // ************************* scenes ************************
-			scene = new THREE.Scene();
-
-            // ************************* camera ************************
-            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000 );
-            camera.position.set(10, 4, 18); // Position the camera above and away from the scene
-            scene.add(camera);
-            cameraControls	= new TrackballControls(camera);
-
-            // ************************* scenes ************************
-            renderer = new THREE.WebGLRenderer({ alpha: true });
+		function init() {
+			// init renderer
+			renderer = new THREE.WebGLRenderer( { antialias: true } );
+			renderer.setPixelRatio( window.devicePixelRatio );
 			renderer.setSize( window.innerWidth, window.innerHeight );
-			renderer.setClearColor(0x222222, 1);     
-
-            // ************************* customize functions ************************           
-			document.getElementById('container').appendChild(renderer.domElement);
-
-			// Resize canvas when the screen resizes
-			document.addEventListener('resize', function() {
-				camera.aspect = width / height;
-				camera.updateProjectionMatrix();
-				renderer.setSize(width, height);
-			}, false);     
-
-            // ************************* lights ************************
+			renderer.shadowMap.enabled = false;
+			renderer.shadowMap.renderReverseSided = false;
+			renderer.setClearColor("#01131E");
+			document.body.appendChild( renderer.domElement );
+			// init scene
+			scene = new THREE.Scene();
+			scene.fog = new THREE.FogExp2(0x01131e, 0.025);
+			scene.background = new THREE.Color( 0x333333 );
+			group = new THREE.Group();
+			scene.add( group );
+			// init camera
+			camera = new THREE.PerspectiveCamera( 50, window.innerWidth / window.innerHeight, 1, 1000 );
+			camera.position.set( 15, 15, 15 );
+			camera.lookAt( 0, 0, 0);
+			controls = new THREE.OrbitControls( camera, renderer.domElement );
+			controls.enableRotate = true;
+			// play audio
+			var listener = new THREE.AudioListener();
+			camera.add( listener );
+			sound = new THREE.Audio( listener );
+			var audioLoader = new THREE.AudioLoader();
+			audioLoader.load( 'assets/background.mp3', function( buffer ) {
+				sound.setBuffer( buffer );
+				sound.setLoop( true );
+				sound.setVolume( 0.5 );
+				sound.play();
+			});
+			// audio analyser
+			analyser = new THREE.AudioAnalyser( sound, 2048 );
+			analyser.analyser.maxDecibels = -3;
+			analyser.analyser.minDecibels = -100;
+			audioData = analyser.data;
+			getAudioData(audioData);
+			// lights 
 			var light	= new THREE.AmbientLight( Math.random() * 0xffffff );
 			scene.add( light );
-
-			var light	= new THREE.DirectionalLight( 0.2 * Math.random() * 0xffffff );
+			var light	= new THREE.DirectionalLight();
 			light.position.set( Math.random(), Math.random(), Math.random() ).normalize();
 			scene.add( light );
-
-			var light	= new THREE.DirectionalLight( 0.2 * Math.random() * 0xffffff );
+			var light	= new THREE.DirectionalLight();
 			light.position.set( Math.random(), Math.random(), Math.random() ).normalize();
 			scene.add(light);
-
-			// ********** Creating your objects here ******************
-			var geometry = new THREE.SphereGeometry( 5, 10, 10 );
+			//add a sphere
+			var geometry = new THREE.SphereGeometry( 2, 10, 10 );
 			var material = new THREE.MeshPhongMaterial({flatShading: true, shininess: 100, color: 0x777777});
 			sphere = new THREE.Mesh( geometry, material );
-			sphere.position.set( 0, 0, 0);
-			scene.add( sphere );
+			sphere.position.set( 0, 3, 0);
+			group.add(sphere);
 
-			var geometry = new THREE.TorusGeometry( 8, 0.3, 30, 30 );
-			var material = new THREE.MeshPhongMaterial({flatShading: true, shininess: 100});
-			torus = new THREE.Mesh( geometry, material );
-			torus.rotation.x = Math.PI / 2 ;
-			scene.add( torus );
+			var geometry = new THREE.CircleGeometry( 5, 32 );
+			//var material = new THREE.MeshBasicMaterial( { color: 0x999999 } );
+			//ground = new THREE.Mesh( geometry, material );
+			//scene.add(ground);
+			var mat = new THREE.LineBasicMaterial( { color: 0xffffff, linewidth: 20 } );
+			var wireframe = new THREE.LineSegments( geometry, mat );
+			wireframe.position.set(0, -1, 0);
+			wireframe.rotation.x = - Math.PI / 2;
+			scene.add( wireframe );
 
-			var geometry = new THREE.TorusGeometry( 9, 0.5, 30, 30 );
-			var material = new THREE.MeshPhongMaterial({flatShading: true, shininess: 100, color: 0x999999});
-			torus2 = new THREE.Mesh( geometry, material );
-			torus2.rotation.x = Math.PI / 3 * 2 ;
-			scene.add( torus2 );
-
-			var particles = new THREE.ConeGeometry(0, 1, 8);
-			for (var p = 0; p < 1000; p++) {
-				var particle = new THREE.Vector3(Math.random() * 500 - 250, Math.random() * 500 - 250, Math.random() * 1000 - 500);
-				particles.vertices.push(particle);
-			}
-
-			var particleMaterial = new THREE.ParticleBasicMaterial({ color: 0xffffff, size: 1 });
-			var particleSystem = new THREE.ParticleSystem(particles, particleMaterial);
-			scene.add(particleSystem);
-			
-
-        }
-
-        function animate(){
-			// Call the function again when the browser is free 
+			window.addEventListener( 'resize', onWindowResize, false );
+			window.addEventListener( "mousemove", onDocumentMouseMove, false );
+		}
+		function animate() {
 			requestAnimationFrame( animate );
-
-			// do the render
 			render();
-        }
+		}
+		function render() {
+			renderer.render( scene, camera );
+			analyser.getFrequencyData();
 
-        function render(){
-
-            // variable which is increase by Math.PI every seconds - usefull for animation
-			var time = Date.now() * Math.PI;
-			// Rotate view camera around scene
-			sphere.rotation.x = Math.cos(time * 0.001) * 0.1;
-			torus.rotation.x += 0.01;
-
-			var speed =  - 0.02;
 			var x = camera.position.x;
-			var z = camera.position.z;
-			var objX = sphere.position.x;
-			var objZ = sphere.position.z;
+            var z = camera.position.z;
 
-			camera.position.x = speed + x;
-			camera.position.x = speed + z;
+			camera.position.x = x * Math.cos(0.01) + z * Math.sin(0.01);
+			camera.position.z = z * Math.cos(0.01) - x * Math.sin(0.01);
 
-			torus.position.set(speed + objX, 0, speed + objZ);
-			torus2.position.set(speed + objX, 0, speed + objZ);
-			sphere.position.set(speed + objX, 0, speed + objZ);
+			// re-Rotate the camerea to look at the cameraTarget at the center of the scene
+			camera.lookAt(cameraTarget);
+	
 
-            // update camera controls
-            cameraControls.update();
+			//ground.position.x +=speed;
 
-            // actually render the scene
-            renderer.render( scene, camera );
+			if (audioData[0] > 1) {
+				sphere.position.set(0, audioData[1] / 20, 0);
+				//console.log(sphere.position);
+				
+			}
+		}
+		function onWindowResize() {
+			camera.aspect = window.innerWidth / window.innerHeight;
+			camera.updateProjectionMatrix();
+			renderer.setSize( window.innerWidth, window.innerHeight );
+		}
 
-        }
-        
+		var selectedObject = null;
+		function onDocumentMouseMove( event ) {
+			event.preventDefault();
+			if ( selectedObject ) {
+				selectedObject.material.color.set( '#69f' );
+				selectedObject = null;
+			}
+			var intersects = getIntersects( event.layerX, event.layerY );
+			if ( intersects.length > 0 ) {
+				var res = intersects.filter( function ( res ) {
+					return res && res.object;
+				} )[ 0 ];
+				if ( res && res.object ) {
+					selectedObject = res.object;
+					selectedObject.material.color.set( '#f00' );
+				}
+			}
+		}
+
+		var raycaster = new THREE.Raycaster();
+		var mouseVector = new THREE.Vector3();
+		function getIntersects( x, y ) {
+			x = ( x / window.innerWidth ) * 2 - 1;
+			y = - ( y / window.innerHeight ) * 2 + 1;
+			mouseVector.set( x, y, 0.5 );
+			raycaster.setFromCamera( mouseVector, camera );
+			return raycaster.intersectObject( group, true );
+		}
+
+		// get the audio data function
+		function getAudioData(data) {
+				var frequencyArray = splitFrenquencyArray(data, 3);
+				for (var i = 0; i < frequencyArray.length; i++) {
+					var average = 0;
+					for (var j = 0; j < frequencyArray[i].length; j++) {
+						average += frequencyArray[i][j];
+					}
+					audioData[i] = average / frequencyArray[i].length;
+				}
+				return audioData;
+			}
+		function splitFrenquencyArray(arr, n) {
+			var tab = Object.keys(arr).map(function(key) {
+				return arr[key];
+			});
+			var len = tab.length,
+				result = [],
+				i = 0;
+			while (i < len) {
+				var size = Math.ceil((len - i) / n--);
+				result.push(tab.slice(i, i + size));
+				i += size;
+			}
+			return result;
+		}
 
 	</script>
 </body>
