@@ -59,7 +59,8 @@
 		var controls, group;
 		var sound, analyser, audioData;
 
-		var sphere, ground;
+		var sphere = []; 
+		var ground;
 
 		init();
 		animate();
@@ -110,26 +111,41 @@
 			var light	= new THREE.DirectionalLight();
 			light.position.set( Math.random(), Math.random(), Math.random() ).normalize();
 			scene.add(light);
-			//add a sphere
-			var geometry = new THREE.SphereGeometry( 2, 10, 10 );
-			var material = new THREE.MeshPhongMaterial({flatShading: true, shininess: 100, color: 0x777777});
-			sphere = new THREE.Mesh( geometry, material );
-			sphere.position.set( 0, 3, 0);
-			group.add(sphere);
+
+			//add spheres
+			for(var i = 0; i < 10; i++) {
+				for(var j = 0; j < 10; j++) {
+					var geometry = new THREE.SphereGeometry( 2, 10, 10 );
+					var material = new THREE.MeshPhongMaterial({flatShading: true, shininess: 100, color: 0x777777});
+					var sphereTemp = new THREE.Mesh( geometry, material );
+					sphereTemp.position.set( i * 6, 3, j * 6);
+					sphere.push(sphereTemp);
+					group.add(sphereTemp);
+				}
+			}
 
 			var geometry = new THREE.CircleGeometry( 5, 32 );
 			//var material = new THREE.MeshBasicMaterial( { color: 0x999999 } );
 			//ground = new THREE.Mesh( geometry, material );
 			//scene.add(ground);
-			var mat = new THREE.LineBasicMaterial( { color: 0xffffff, linewidth: 20 } );
-			var wireframe = new THREE.LineSegments( geometry, mat );
+			var geo = new THREE.EdgesGeometry( geometry );
+			var mat = new THREE.LineBasicMaterial( { color: 0xffffff, lineWidth: 50, polygonOffsetFactor: 1 } );
+			var wireframe = new THREE.LineSegments( geo, mat );
 			wireframe.position.set(0, -1, 0);
 			wireframe.rotation.x = - Math.PI / 2;
 			scene.add( wireframe );
 
+			var geo = new THREE.PlaneBufferGeometry(10000, 10000);
+			mat = new THREE.MeshLambertMaterial({color: 0x888888});
+			var mesh = new THREE.Mesh(geo, mat);
+			mesh.position.set(0, -5, 0);
+			mesh.rotation.set(Math.PI / -2, 0, 0);
+			scene.add(mesh);
+
 			window.addEventListener( 'resize', onWindowResize, false );
 			window.addEventListener( "mousemove", onDocumentMouseMove, false );
 		}
+
 		function animate() {
 			requestAnimationFrame( animate );
 			render();
@@ -138,23 +154,26 @@
 			renderer.render( scene, camera );
 			analyser.getFrequencyData();
 
-			var x = camera.position.x;
-            var z = camera.position.z;
-
-			camera.position.x = x * Math.cos(0.01) + z * Math.sin(0.01);
-			camera.position.z = z * Math.cos(0.01) - x * Math.sin(0.01);
-
 			// re-Rotate the camerea to look at the cameraTarget at the center of the scene
-			camera.lookAt(cameraTarget);
+			//camera.lookAt(cameraTarget);
 	
 
 			//ground.position.x +=speed;
-
-			if (audioData[0] > 1) {
-				sphere.position.set(0, audioData[1] / 20, 0);
-				//console.log(sphere.position);
-				
+			for(var i = 0; i < sphere.length; i++) {
+				sphere[i].rotation.x += 0.01;
+				sphere[i].rotation.z +=0.01;
 			}
+
+			for(var i = 0; i < sphere.length; i++) {
+				if (audioData[0] > 1) {
+					//var randomRate = Math.random(1,2);
+					var posx = sphere[i].position.x;
+					var posy = sphere[i].position.z;
+					sphere[i].position.set(posx, randomRate * audioData[1] / 20, posy);
+					//console.log(sphere.position);	
+				}
+			}
+
 		}
 		function onWindowResize() {
 			camera.aspect = window.innerWidth / window.innerHeight;
