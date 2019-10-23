@@ -156,12 +156,12 @@
 			scene.add( sphere);			
 			sphereLight = createObjectGroup(count);
 
-			for (var i = 0; i < 10; i ++) {
-				to = new createCircle();
-				to.position.y = to.position.y - i * 100;
-				scene.add( to );
-				circle.push(to);
-			}
+			// for (var i = 0; i < 10; i ++) {
+			// 	to = new createCircle();
+			// 	to.position.y = to.position.y - i * 100;
+			// 	scene.add( to );
+			// 	circle.push(to);
+			// }
 
 
 			// function CustomSinCurve( scale ) {
@@ -206,19 +206,20 @@
             // variable which is increase by Math.PI every seconds - usefull for animation
 			var time = Date.now() * Math.PI;
 			analyser.getFrequencyData();
-			for(var i = 0; i < 10; i ++ ){
-				circle[i].position.y += 2;
-			}
 			
-			if (circle[0].position.y > 200) {
-				temp = new createCircle();
-				temp.position.y = circle[9].position.y;
-				circle.push(temp);
-				circle.shift(circle[0]);
-				scene.add(circle[10]);
-				console.log('popped out!');
-				console.log(circle.length);
-			}
+			// for(var i = 0; i < 10; i ++ ){
+			// 	circle[i].position.y += 2;
+			// }
+			
+			// if (circle[0].position.y > 200) {
+			// 	temp = new createCircle();
+			// 	temp.position.y = circle[9].position.y;
+			// 	circle.push(temp);
+			// 	circle.shift(circle[0]);
+			// 	scene.add(circle[10]);
+			// 	console.log('popped out!');
+			// 	console.log(circle.length);
+			// }
 			
 			
 			//console.log(circle[0].position.y);
@@ -312,16 +313,16 @@
 
 		// get the audio data function
 		function getAudioData(data) {
-				var frequencyArray = splitFrenquencyArray(data, 3);
-				for (var i = 0; i < frequencyArray.length; i++) {
-					var average = 0;
-					for (var j = 0; j < frequencyArray[i].length; j++) {
-						average += frequencyArray[i][j];
-					}
-					audioData[i] = average / frequencyArray[i].length;
+			var frequencyArray = splitFrenquencyArray(data, 3);
+			for (var i = 0; i < frequencyArray.length; i++) {
+				var average = 0;
+				for (var j = 0; j < frequencyArray[i].length; j++) {
+					average += frequencyArray[i][j];
 				}
-				return audioData;
+				audioData[i] = average / frequencyArray[i].length;
 			}
+			return audioData;
+		}
 		function splitFrenquencyArray(arr, n) {
 			var tab = Object.keys(arr).map(function(key) {
 				return arr[key];

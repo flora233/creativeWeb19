@@ -1,0 +1,267 @@
+<!doctype html>
+<html>
+	<head>
+		<title>Introduction to Three.js - Raycasting</title>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+		
+			
+		<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/108/three.js"></script>
+		<script src="https://cdn.jsdelivr.net/npm/three-trackballcontrols-web@0.0.2/dist/three-trackballcontrols.js"></script>
+		<script src="https://unpkg.com/tone"></script>
+
+		<style>
+			body {
+				overflow	: hidden;
+				padding		: 0;
+				margin		: 0;
+
+				color		: #222;
+				background: linear-gradient(to bottom,  #EEE 0%,#CCC 100%);
+				font-family	: monospace;
+				font-size	: 100%;
+			}
+			#info .top {
+				position	: absolute;
+				top		: 0px;
+				width		: 100%;
+				padding		: 5px;
+				text-align	: center;
+			}
+			#info a {
+				color		: #66F;
+				text-decoration	: none;
+			}
+			#info a:hover {
+				text-decoration	: underline;
+			}
+			#info .bottom {
+				position	: absolute;
+				bottom		: 0px;
+				right		: 5px;
+				padding		: 5px;
+			}
+		</style>
+	</head>
+<body>
+	<!-- three.js container -->
+			<div id="container"></div>
+			<div id="info">
+				<p class="top">
+					Click on a cube to interact with it.
+				</p>
+			</div>
+	<!-- info on screen display -->
+
+	<script type="text/javascript">
+		/*
+			Three.js Setup
+		*/
+
+		var stats, scene, renderer;
+        var camera, shouldRaycast;
+        var cameraControls;
+
+        var cameraTarget = new THREE.Vector3(0,0,0);
+        var raycaster = new THREE.Raycaster();
+		var mouse = new THREE.Vector2();
+		var currentMesh;
+
+        var sphere = [];
+        var numOfSphere = 10;
+        var posy = [];
+ 
+		/*
+			Tone.js Setup
+		*/
+        const notes = ['C4', 'D4', 'E4', 'F4', 'G4', 'A4', 'B4', 'C5', 'D5', 'E5']
+		const drumSynth = new Tone.MembraneSynth().toMaster()
+		const noteSynth = new Tone.Synth().toMaster()
+
+        const partSynth = new Tone.DuoSynth().toMaster()
+        var part = new Tone.Part(function(time, event) {
+            //the events will be given to the callback with the time they occur
+            partSynth.triggerAttackRelease(event.note, event.dur, time)
+        }, [
+            { time : 0, note : 'C4', dur : '4n'},
+            { time : {'4n' : 1, '4n' : 1}, note : 'G4', dur : '4n'},
+            { time : '4n', note : 'E4', dur : '4n'},
+            { time : {'2n' : 1, '8t' : 1}, note : 'G4', dur : '4n'}
+        ])
+
+        //start the part at the beginning of the Transport's timeline
+        part.loop = 100;
+        part.start(0)
+
+		const loop = new Tone.Loop(function(time){
+			//drumSynth.triggerAttackRelease("C1", "8n", time)
+        }, "4n")
+
+		loop.start(0)
+		Tone.Transport.start()
+        
+        var synth = new Tone.PolySynth(6, Tone.Synth, {
+            oscillator : {
+                    type : "square"
+                }
+        }).toMaster();
+        synth.set("detune", -1200);
+        synth.triggerAttackRelease(["C4", "E4", "A4"], "4n");
+
+		init();
+		animate();
+
+		function init(){
+			renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+			renderer.setSize( window.innerWidth, window.innerHeight );
+			renderer.setClearColor(0xffffff, 0);
+
+
+			// Append the renderer's <canvas> element to the screen
+			document.getElementById('container').appendChild(renderer.domElement);
+
+			// Resize canvas when the screen resizes
+			document.addEventListener('resize', function() {
+				camera.aspect = width / height;
+				camera.updateProjectionMatrix();
+				renderer.setSize(width, height);
+			}, false);
+
+			// create the root scene
+			scene = new THREE.Scene();
+
+			/* Camera */ 
+
+			// create the view camera
+			camera = new THREE.PerspectiveCamera(100, window.innerWidth / window.innerHeight, 1, 20 );
+			camera.position.set(5, 5, 5); // Position the camera above and away from the scene
+			camera.lookAt(cameraTarget); // Tell the camera to aim at our cameraTarget
+			scene.add(camera);
+
+			/* Lights */
+
+			// Add lights to the scene
+			var light1	= new THREE.AmbientLight( Math.random() * 0xffffff );
+			scene.add( light1 );
+
+			// Add random directional light at random position
+			var light2	= new THREE.DirectionalLight( Math.random() * 0xffffff );
+			light2.position.set( Math.random(), Math.random(), Math.random() ).normalize().multiplyScalar(3);
+			light2.lookAt(cameraTarget); // Tell the camera to aim at our cameraTarget
+			scene.add( light2 );
+
+			// Add another random light
+			var light3	= new THREE.DirectionalLight( Math.random() * 0xffffff );
+			light3.position.set( Math.random(), Math.random(), Math.random() ).normalize().multiplyScalar(3);
+			light3.lookAt(cameraTarget); // Tell the camera to aim at our cameraTarget
+			scene.add(light3);
+
+
+			/* Geometry */ 
+            var geometry = new THREE.PlaneBufferGeometry( 5, 5, 32 );
+            var material = new THREE.MeshPhongMaterial({color: 0x999999});
+            var plane = new THREE.Mesh( geometry, material );
+            plane.position.set(0, 2, -2);
+            //plane.rotation.z = Math.PI / 2;
+            scene.add( plane );
+
+            var geometry = new THREE.PlaneBufferGeometry( 5, 20, 32 );
+            var material = new THREE.MeshPhongMaterial({color: 0x999999});
+            var plane = new THREE.Mesh( geometry, material );
+            plane.position.set(-2, 2, 0);
+            plane.rotation.y = Math.PI / 2;
+            scene.add( plane );
+
+            var geometry = new THREE.PlaneBufferGeometry( 8, 5, 32 );
+            var material = new THREE.MeshPhongMaterial({color: 0x999999});
+            var plane = new THREE.Mesh( geometry, material );
+            plane.material.side = THREE.DoubleSide;
+            plane.position.set(0, 0, 0);
+            plane.rotation.x = Math.PI / 2;
+            scene.add( plane );
+
+            //sphere
+            for(var i = 0; i < numOfSphere; i++){
+                var geometry = new THREE.SphereBufferGeometry( 0.2, 20, 20 );
+                var material = new THREE.MeshPhongMaterial({color: 0x666666});
+                var s = new THREE.Mesh( geometry, material );
+                sphere.push(s);
+                sphere[i].position.set(Math.random(1) * i, 3 + Math.random(1), Math.random(1) * i);
+                scene.add( sphere[i] );
+
+                sphere[i].n = i;
+                sphere[i].posy = sphere[i].position.y;
+                sphere[i].spe = (Math.random(0.1)+ 0.1)* 0.1;
+                sphere[i].acc = 0.002;
+            }
+
+
+		}
+
+		// animation loop
+		function animate() {
+			requestAnimationFrame( animate );
+			render();
+		}
+
+		function render() {
+
+            for(var i = 0; i < numOfSphere; i++){
+                if( sphere[i].posy >= 4){
+                    noteSynth.triggerAttackRelease(notes[sphere[i].n], "8n")
+                    sphere[i].spe *= -1;
+                }
+                else if (sphere[i].posy <= 0) {
+                    noteSynth.triggerAttackRelease(notes[sphere[i].n], "2n")
+                    sphere[i].spe *= -1;
+                } 
+
+                sphere[i].posy += sphere[i].spe
+                sphere[i].position.y = sphere[i].posy
+                sphere[i].spe += sphere[i].acc
+            }
+
+            /* Raycasting */
+            var hits = []
+            if(shouldRaycast) { // check if mouse is pressed
+                raycaster.setFromCamera(mouse, camera);
+                var intersections = raycaster.intersectObjects(scene.children);
+                hits = intersections.map(intersection => intersection.object)
+            }
+
+			var time = Date.now() * Math.PI;
+			renderer.render( scene, camera );
+			camera.lookAt(cameraTarget);
+
+			// iterate over all objects in a scene
+			scene.traverse(function(object3d, i) {
+				// Check if the current object is a THREE.Mesh (rather than a light, camera, etc.)
+				if( object3d instanceof THREE.Mesh === false )	return
+                if(hits.includes(object3d)) {
+					object3d.scale.set(1.2,1.2,1.2)
+					synth.triggerAttackRelease("C1", "8n")
+				}
+                else 
+                    object3d.scale.set(1,1,1)
+            })
+        }
+        
+        window.addEventListener('mousemove', function (event) {
+            // calculate mouse position in normalized device coordinates
+            // (-1 to +1) for both components
+            mouse.x = ( event.clientX / window.innerWidth ) * 2 - 1;
+	        mouse.y = - ( event.clientY / window.innerHeight ) * 2 + 1;
+        })
+
+        window.addEventListener('mousedown', function (event) {
+            shouldRaycast = true;
+        })
+
+        window.addEventListener('mouseup', function (event) {
+            shouldRaycast = false;
+        })
+
+
+	</script>
+</body>
+</html>
