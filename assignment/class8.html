@@ -60,6 +60,11 @@
             console.log('Loaded!')
         }).toMaster()
 
+        const meter = new Tone.Meter(32) 
+		const fft = new Tone.FFT(32)
+		const waveform = new Tone.Waveform(32)
+		Tone.Master.chain(meter, fft, waveform)
+
         // Set the player to autostart once the file is loaded
         player.autostart = true
 
@@ -85,6 +90,7 @@
         var mouse = new THREE.Vector2();
         var cubes = [];
         var numCubes = 6;
+        var spinSpeed = 0;
 
 		/*
 			WebMIDI Setup
@@ -217,13 +223,13 @@
 
 			for (let i = 0; i < numCubes; i++) {
 				// Create a cube gemetry
-				geometry = new THREE.SphereGeometry( 0.5, 0.5, 0.5 );
+				geometry = new THREE.TorusGeometry( 0.3, 0.1, 16, 100 );
 					
 				// Create a new material for every mesh so we can color them separately
 				material = new THREE.MeshPhongMaterial({color: Math.random() * 0xffffff, transparent:true, opacity: 0.5});
                 material.flatShading = true;
 
-				pointX = Math.sin(2 * Math.PI * (i / numCubes));
+				pointX = Math.sin(4 * Math.PI * (i / numCubes));
 				pointZ = Math.cos(2 * Math.PI * (i / numCubes));
 
 				mesh	= new THREE.Mesh( geometry, material );
@@ -250,6 +256,9 @@
 
 		// render the scene
 		function render() {
+            const level = meter.getValue()
+			const freqDomain = fft.getValue()
+			const timeDomain = waveform.getValue()
             /* Raycasting */
             
             var hits = []
@@ -277,31 +286,30 @@
 			// Rotate view camera around scene
 			var x = camera.position.x;
             var z = camera.position.z;
+			var d = Math.max(-level, 0) / 10 // avoid -infinity when no audio playing
 
-			camera.position.x = x * Math.cos(0.01) + z * Math.sin(0.01);
-			camera.position.z = z * Math.cos(0.01) - x * Math.sin(0.01);
+			spinSpeed = Math.max(spinSpeed * 0.85 + d, 0)
 
+			camera.position.x = x * Math.cos(0.01) + z * Math.sin(0.01 + spinSpeed);
+			camera.position.z = z * Math.cos(0.01 + spinSpeed) - x * Math.sin(0.01 + spinSpeed/2);
 			// re-Rotate the camerea to look at the cameraTarget at the center of the scene
 			camera.lookAt(cameraTarget);
 
 			// iterate over all objects in a scene
-			scene.traverse(function(object3d, i){
-				// Check if the current object is a THREE.Mesh (rather than a light, camera, etc.)
-				if( object3d instanceof THREE.Mesh === false )	return
+			cubes.forEach((sphere, i) => {
+				// Rotate object based on `n` coefficient
+				cubes.rotateY(0.01 * cubes.n);
+				cubes.rotateX(0.02 * cubes.n);
+                cubes.rotateZ(0.03 * cubes.n);
 
-                // Rotate object based on `n` coefficient
-				object3d.rotateY(0.01 * object3d.n);
-				object3d.rotateX(0.02 * object3d.n);
-                object3d.rotateZ(0.03 * object3d.n);
-                
-                /* Try animating transitions here! */ 
+				// set scale according to current audio level in frequency bin
+				const s = 0.75 + -60 / freqDomain[i]
+				cubes.scale.set(s,s,s)
 
-                // Check if current mesh is hit by the raycast
-                if(hits.includes(object3d))
-                    object3d.scale.set(1.2,1.2,1.2)
-                else 
-                    object3d.scale.set(1,1,1)
-            })
+				// set color according to current audio level in time domain
+				const c = Math.abs(timeDomain[i]) / 15
+				cubes.material.color.offsetHSL(c, 0, 0) 
+			})
         }
         
         window.addEventListener('mousemove', function (event) {
