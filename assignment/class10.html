@@ -54,9 +54,8 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/peerjs/1.0.4/peerjs.min.js"></script>
   <script src="./call-peer.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/109/three.js"></script>
-  <script src="../vendor/controls/FirstPersonControls.js"></script>
+  <script src="../vendor/controls/FirstPersonControls.js"></script> 
   
-
 
   <script>
 
@@ -71,6 +70,108 @@
     var rotateSpeed = 0.01
     var clock = new THREE.Clock()
 
+    var balls = []
+    var toggleBlankSpace = false; //should shot the bullet or not
+    var cannonListener, cannonSound, cannonAudioListener  // what to hear
+    let jumpVelocity = 40;  //how fast to jum
+    let theta = 0;          //"time", increases every frame
+
+    var sun,sunlight;
+    let createSun = function(){
+
+      sunlight = new THREE.PointLight({
+        color: randomInRange(0x880000,0xffffff),
+        intensity: Math.random()+1,
+        distance: 500,
+        decay: 1
+      });
+      sunlight.position.set(0,150,0);
+      sunlight.castShadow=true;
+      scene.add(sunlight);
+      sunlight.shadow.mapSize.width = 1000;  // default
+      sunlight.shadow.mapSize.height = 1000; // default
+      sunlight.shadow.camera.near = 1;       // default
+      sunlight.shadow.camera.far = 2000;      // default
+      sunlight.shadow.bias = 0.01;
+
+      let material = new THREE.MeshPhongMaterial({
+        color: randomInRange(0x888800,0xffffff),
+        emissive: randomInRange(0x880000,0xffffff),
+        emissiveIntensity:.75
+      });
+      let geometry = new THREE.SphereGeometry(25,12,12);
+      sun = new THREE.Mesh(geometry,material);
+      sun.position.set(0,150+sunKills*8,0)
+      scene.add(sun);
+    }
+
+
+    /* LIVE STREAM - HTTP-SERVER */
+    pc1 = new RTCPeerConnection();
+    // ...
+    localStream.getTracks().forEach((track) => {
+      pc1.addTrack(track, localStream);
+    });
+
+    pc1.setLocalDescription(desc).then(() => {
+      onSetLocalSuccess(pc1);
+    },
+      onSetSessionDescriptionError
+    );
+    trace('pc2 setRemoteDescription start');
+    pc2.setRemoteDescription(desc).then(() => {
+        onSetRemoteSuccess(pc2);
+      },
+      onSetSessionDescriptionError
+    );
+
+    pc2 = new RTCPeerConnection(servers);
+    pc2.ontrack = gotRemoteStream;
+    //...
+    function gotRemoteStream(e){
+      vid2.srcObject = e.stream;
+    }
+    
+    // var canvasElt = document.querySelector('canvas');
+    // // Get the stream
+    // var stream = canvasElt.captureStream(25); // 25 FPS
+    // pc.addStream(stream);
+    // document.querySelector('.playAndRecord').addEventListener('click', function() {
+    //   var playbackElement = document.getElementById("playback");
+    //   var captureStream = playbackElement.captureStream();
+    //   playbackElement.play();
+    // });
+
+    initPeer(
+      // called on initial connection (on Peer.js initialization)
+      function onConnection(myPeerId) {
+        console.log("MY ID", myPeerId)
+      },
+      // called on incoming data messages (every message)
+      function onData(message, peerId) {
+        console.log("ON DATA", message, peerId)
+      },
+      // called on incoming media stream connections (on connection)
+      // for local media stream, peerId is `undefined`
+      function onMediaStream(stream, peerId) {
+        // stream is an instance of the MediaStream class
+        // it contains both audio and video streaming tracks
+        // Here's the documentation: https://developer.mozilla.org/en-US/docs/Web/API/MediaStream
+        
+        if(peerId) {
+          console.log("ON REMOTE STREAM", peerId, stream)
+        } else {
+          console.log("ON LOCAL STREAM", stream)
+        }
+        // Play the stream
+        playStream(stream)
+      }, {
+
+      }
+    )
+  
+
+
     function init() {
       // initialize scene
       scene = new THREE.Scene()
@@ -78,9 +179,9 @@
       // initialize camera
       camera = new THREE.PerspectiveCamera(45, WIDTH / HEIGHT, 0.1, 1000)
       camera.lookAt(scene.position)
-      camera.position.x = 0
+      camera.position.x = 100
       camera.position.y = 0
-      camera.position.z = 50
+      camera.position.z = 100
 
       // initialize the controller
       camControls = new THREE.FirstPersonControls(camera);
@@ -94,12 +195,39 @@
       camControls.lon = -150;
       camControls.lat = 120;
 
-      var controls = new function () {
-          // we need the first child, since it's a multimaterial
-      };
 
-      function setCamControls() { 
-      };
+      /** SOUNDS **/
+      // create an AudioListener and add it to the camera
+      cannonListener = new THREE.AudioListener();
+      let musicListener = new THREE.AudioListener();
+      camera.add(cannonListener, musicListener);
+
+      // create a global audio source
+      cannonSound = new THREE.Audio(cannonListener);
+      musicSound = new THREE.Audio(musicListener);
+
+      // load a sound and set it as the Audio object's buffer
+      cannonAudioLoader = new THREE.AudioLoader();
+      cannonAudioLoader.load( 'assets/shoot.wav', function( buffer ) {
+        cannonSound.setBuffer( buffer );
+        cannonSound.setLoop( false );
+        cannonSound.setVolume( 0.1 );
+        cannonSound.playbackRate = 5;
+        cannonSound.hasPlaybackControl = true;
+      });
+
+      // musicAudioLoader = new THREE.AudioLoader();
+      // musicAudioLoader.load( 'assets/shoot.wav', function( buffer ) {
+      //   musicSound.setBuffer( buffer );
+      //   musicSound.setLoop( true );
+      //   musicSound.setVolume( 0.25 );
+      //   musicSound.playbackRate = 0.666666;
+      //   musicSound.hasPlaybackControl = true;
+      //   musicSound.play();
+      // });
+
+
+
 
       // initialize renderer
       renderer = new THREE.WebGLRenderer({ antialias: true })
@@ -120,10 +248,10 @@
 
           // add geometry
       var geometry, material, mesh, randomPoint
-      geometry = new THREE.CylinderBufferGeometry( 1, 1, 0.4, 10 )
+      geometry = new THREE.CylinderBufferGeometry( 1, 1, 0.4, 30 )
       material = new THREE.MeshPhongMaterial( {color: 0xffff00} )
       user = new THREE.Mesh( geometry, material )
-      user.position.set(0, -2.5, -2)
+      user.position.set(camera.position.x, camera.position.y, camera.position.z + 1)
       scene.add( user )
           // add the plane
       var geometry = new THREE.PlaneBufferGeometry( 2000, 2000, 32 )
@@ -140,36 +268,112 @@
         // render
       renderer.render(scene, camera)
       var delta = clock.getDelta()
-      camControls.update(delta)
+      camControls.update(delta * 0.5)
       user.position.set(camera.position.x , -2.5, camera.position.z - 5)
+
+      /** OBJECT ACTIONS **/
+      balls.forEach(ball=>ball.move());
+      //Sun Orbiting Above Scene:
+      // sun.position.x = 175*Math.sin(theta*3);
+      // sun.position.z = 175*Math.cos(theta*3);
+      // sunlight.position.x = 175*Math.sin(theta*3);
+      // sunlight.position.z = 175*Math.cos(theta*3);
+      // theta+=0.001;
+      // theta+=0.001;
     }
 
     init()
     render()
+    
 
     /* user interactions */
       //keyborad interactions
-    // document.onkeydown = checkKey;
-    // function checkKey(e) {
-    //     e = e || window.event;
-    //     if (e.keyCode == '38') {
-    //       camera.position.z -= moveSpeed
-    //         // up arrow
-    //     }
-    //     else if (e.keyCode == '40') {
-    //       camera.position.z += moveSpeed
-    //         // down arrow
-    //     }
-    //     else if (e.keyCode == '37') {
-    //       camera.rotation.y += rotateSpeed
-    //       // left arrow
-    //     }
-    //     else if (e.keyCode == '39') {
-    //       camera.rotation.y -= rotateSpeed
-    //       // right arrow
-    //     }
-    // }
+    document.onkeydown = checkKey;
+    function checkKey(e) {
+        e = e || window.event;
 
+        if (e.keyCode == '32') {
+          // body.requestPointerLock();
+          toggleBlankSpace = true;
+          if(balls.length<6){
+            if(cannonSound.isPlaying)cannonSound.stop();
+            cannonSound.playbackRate=3+2*Math.random();
+            balls.push(new Ball());
+            cannonSound.play();
+          }
+        }
+
+        // else if (e.keyCode == '38') {
+        //   camera.position.z -= moveSpeed
+        //     // up arrow
+        // }
+        // else if (e.keyCode == '40') {
+        //   camera.position.z += moveSpeed
+        //     // down arrow
+        // }
+        // else if (e.keyCode == '37') {
+        //   camera.rotation.y += rotateSpeed
+        //   // left arrow
+        // }
+        // else if (e.keyCode == '39') {
+        //   camera.rotation.y -= rotateSpeed
+        //   // right arrow
+        // }
+    }
+
+    /* Costomized functions */
+    //Cannons
+    class Ball{
+        constructor(){
+          let material = new THREE.MeshPhongMaterial({
+            color: 0xffffff,
+            side: THREE.DoubleSide,
+            shininess:10
+  
+          });
+          let geometry = new THREE.SphereGeometry(1,12,12);
+          let ball = new THREE.Mesh(geometry,material);
+          ball.position.x = camera.position.x;
+          ball.position.y = camera.position.y;
+          ball.position.z = camera.position.z;
+          this.object = ball;
+          this.direction = new THREE.Vector3(0,0,0);
+          camera.getWorldDirection(this.direction );
+          scene.add(ball);
+          this.t = 100;
+          this.isAlive = true;
+        }
+        //behavior
+        move(){
+          this.object.position.x += this.direction.x*2;
+          this.object.position.y += this.direction.y+0.25;
+          this.direction.y-=.01;
+          this.object.position.z += this.direction.z*2;
+          if(this.object.position.y<.5)this.object.position.y=.5;
+
+          // if((this.object.position).distanceTo(sun.position)<20){
+          //   sunlight.intensity=0;
+          //   scene.remove(sun,sunlight);
+          //   theta+=randomInRange(3*Math.PI/4,3*Math.PI/2);
+          //   // delete sunlight;
+          //   sunKills++;
+          //   createSun();
+          // }
+
+          // boxes.forEach(box=>{
+          //   if((this.object.position).distanceTo(box.object.position)<3){
+          //     scene.remove(this.object);
+          //     box.remove();
+          //   }
+          // });
+          this.t-=1;
+          //removal after 200 animation frames
+          if(this.t<0){
+            scene.remove(this.object);
+            balls = balls.slice(1,balls.length);
+          }
+        }
+      }
 
     // var newlabel = document.createElement("label");
     // newlabel.innerHTML = "Here goes the text";

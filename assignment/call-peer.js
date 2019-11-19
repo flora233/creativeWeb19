@@ -21,12 +21,12 @@ function initPeer(callback, dataCallback, mediaCallback, settings) {
 
   if (!navigator.getUserMedia) return unsupported()
 
-  getLocalStream(settings, function(err, stream) {
-    if (err || !stream) return;
+  // getLocalStream(settings, function(err, stream) {
+  //   if (err || !stream) return;
 
-    if(mediaCallback) mediaCallback(stream)
-    connectToPeerJS(settings.id)
-  })
+  //   if(mediaCallback) mediaCallback(stream)
+  //   connectToPeerJS(settings.id)
+  // })
 }
 
 // Connect to PeerJS and get an ID
