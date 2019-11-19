@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Login</title>
+  <style>
+    .wrapper {
+      position: absolute;
+      top: 25px;
+      left: 25px;
+      z-index: 1000;
+      color: white !important;
+    }
+
+    video {
+      width: 300px;
+      object-fit: contain;
+    }
+
+    #videos {
+      position: absolute;
+      left: 500%;
+      height: 500%;
+    }
+
+    #inputbox {
+      padding: 20% 0;
+      width:50;
+      height: 50;
+      position: absolute;
+      left: 36%;
+    }
+    #button {
+      padding: 21% 0;
+      width:80;
+      height: 50;
+      position: absolute;
+      left: 45%;
+    }
+
+
+  </style>  
+</head>
+
+<body>
+  <div id="inputbox">
+      <div class="input-group mb-3">
+          <div class="input-group-prepend">
+            <span class="input-group-text" id="basic-addon1">Make Your id Unique</span>
+          </div>
+          <input type="text" id="uid" class="form-control" placeholder="Your Name" aria-label="Username" aria-describedby="basic-addon1">
+        </div>
+  </div>
+
+  </br>
+  </br>
+
+  <div id="button">
+    <button type="button" class="btn btn-warning" id="call" onclick="GetUserName()">Yikes Let's go!</button>
+  </div>
+
+
+  
+  <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js" integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js" integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1" crossorigin="anonymous"></script>
+  <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js" integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM" crossorigin="anonymous"></script>
+  <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/peerjs/1.0.4/peerjs.min.js"></script>
+  <script src="./call-peer.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/109/three.js"></script>
+  
+  <script>
+    function GetUserName() {
+      window.location='./class10.html'
+      var UserName = document.getElementById('uid').value
+      window.location('./class10.html').getElementById('labelbox').value += UserName
+    }
+
+  </script>
+</body>
+</html>
