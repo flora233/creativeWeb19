@@ -108,39 +108,8 @@
 
     /* LIVE STREAM - HTTP-SERVER */
     pc1 = new RTCPeerConnection();
-    // ...
-    localStream.getTracks().forEach((track) => {
-      pc1.addTrack(track, localStream);
-    });
 
-    pc1.setLocalDescription(desc).then(() => {
-      onSetLocalSuccess(pc1);
-    },
-      onSetSessionDescriptionError
-    );
-    trace('pc2 setRemoteDescription start');
-    pc2.setRemoteDescription(desc).then(() => {
-        onSetRemoteSuccess(pc2);
-      },
-      onSetSessionDescriptionError
-    );
 
-    pc2 = new RTCPeerConnection(servers);
-    pc2.ontrack = gotRemoteStream;
-    //...
-    function gotRemoteStream(e){
-      vid2.srcObject = e.stream;
-    }
-    
-    // var canvasElt = document.querySelector('canvas');
-    // // Get the stream
-    // var stream = canvasElt.captureStream(25); // 25 FPS
-    // pc.addStream(stream);
-    // document.querySelector('.playAndRecord').addEventListener('click', function() {
-    //   var playbackElement = document.getElementById("playback");
-    //   var captureStream = playbackElement.captureStream();
-    //   playbackElement.play();
-    // });
 
     initPeer(
       // called on initial connection (on Peer.js initialization)
@@ -329,7 +298,6 @@
             color: 0xffffff,
             side: THREE.DoubleSide,
             shininess:10
-  
           });
           let geometry = new THREE.SphereGeometry(1,12,12);
           let ball = new THREE.Mesh(geometry,material);
@@ -350,22 +318,6 @@
           this.direction.y-=.01;
           this.object.position.z += this.direction.z*2;
           if(this.object.position.y<.5)this.object.position.y=.5;
-
-          // if((this.object.position).distanceTo(sun.position)<20){
-          //   sunlight.intensity=0;
-          //   scene.remove(sun,sunlight);
-          //   theta+=randomInRange(3*Math.PI/4,3*Math.PI/2);
-          //   // delete sunlight;
-          //   sunKills++;
-          //   createSun();
-          // }
-
-          // boxes.forEach(box=>{
-          //   if((this.object.position).distanceTo(box.object.position)<3){
-          //     scene.remove(this.object);
-          //     box.remove();
-          //   }
-          // });
           this.t-=1;
           //removal after 200 animation frames
           if(this.t<0){
